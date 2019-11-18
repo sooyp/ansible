@@ -1,4 +1,8 @@
 ---
+- hosts: all
+  gather_facts: false
+  tasks: 
+
 # Create Security Group for RDS 
 - name: rds security group
   ec2_group:
@@ -7,12 +11,12 @@
     vpc_id: vpc-08b84725240922342
     region: eu-west-1
     rules:
-      - proto: tcp
+    - proto: tcp
         ports:
         - 3306
         group_id: "{{ ec2_1.group_id }}"
         rule_desc: allow from 1st Instance on port 3306
-      - proto: tcp
+    - proto: tcp
         ports:
         - 3306
         group_id: "{{ ec2_2.group_id }}"
@@ -28,11 +32,11 @@
     vpc_id: vpc-08b84725240922342
     region: eu-west-1
     rules:
-      - proto: tcp
-        ports:
-        - 80
-        cidr_ip: 0.0.0.0/0
-        rule_desc: allow from all on port 80
+    - proto: tcp
+      ports:
+      - 80
+      cidr_ip: 0.0.0.0/0
+      rule_desc: allow from all on port 80
     register: elb_sg
 
 # Create Security Group for Instances
@@ -79,7 +83,7 @@
       Technical Service: "Ansible Tower"
       Software Product: "SHARED"
     register: instance01
-	
+
 # start a 2nd instance
 - ec2_instance:
     name: "instance02"
@@ -95,7 +99,7 @@
       Technical Service: "Ansible Tower"
       Software Product: "SHARED"
     register: instance02
-	
+
 # Create an ELB, Listeners, Health Check and add tags
 - local_action:
     module: ec2_elb_lb
@@ -143,7 +147,7 @@
       - subnet-0d4a62e9f365f18e2
       - subnet-02de914ce9a45339e
     register: rds_sub
-    
+
 #Create RDS SQL Server 
 - name: "Testing the Creation of a SQL Server RDS instance using Ansible"
   rds_instance:
