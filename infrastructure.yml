@@ -47,7 +47,7 @@
     vpc_id: vpc-08b84725240922342
     region: eu-west-1
     rules:
-      - proto: tcp
+    - proto: tcp
         ports:
         - 80
         group_id: "{{ elb_sg.group_id }}"
@@ -61,7 +61,7 @@
     vpc_id: vpc-08b84725240922342
     region: eu-west-1
     rules:
-      - proto: tcp
+    - proto: tcp
         ports:
         - 80
         group_id: "{{ elb_sg.group_id }}"
@@ -106,21 +106,21 @@
     name: "Testing Creating ELB with Ansible Tower"
     state: present
     security_group_ids:
-      - "{{ elb_sg.group_id }}"
+    - "{{ elb_sg.group_id }}"
     subnets: 
-      - subnet-077f187433ccfa2db
-      - subnet-009f2ddc9a2513afe
+    - subnet-077f187433ccfa2db
+    - subnet-009f2ddc9a2513afe
     cross_az_load_balancing: yes
     connection_draining_timeout: 300
     instance_ids: 
-      - instance01.instance_id
-      - instance02.instance_id
+    - instance01.instance_id
+    - instance02.instance_id
     region: eu-west-1
     zones:
-      - eu-west-1a
-      - eu-west-1b
+    - eu-west-1a
+    - eu-west-1b
     listeners:
-      - protocol: http
+    - protocol: http
         load_balancer_port: 80
         instance_port: 80
     tags:
@@ -144,8 +144,8 @@
     name: RDS Subnet Group
     description: Testing the Creation of a Subnet Group for RDS Instance
     subnets:
-      - subnet-0d4a62e9f365f18e2
-      - subnet-02de914ce9a45339e
+    - subnet-0d4a62e9f365f18e2
+    - subnet-02de914ce9a45339e
     register: rds_sub
 
 #Create RDS SQL Server 
@@ -161,4 +161,4 @@
     availability_zone: eu-west-1a
     db_subnet_group: "{{ rds_sub.subnet_group.name }}"
     vpc_security_group_ids: 
-      - "{{ rds_sg.group_id }}"    
+    - "{{ rds_sg.group_id }}"    
