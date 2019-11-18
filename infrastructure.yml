@@ -1,0 +1,159 @@
+# Create Security Group for RDS 
+- name: rds security group
+  ec2_group:
+    name: "{{ name }}"
+    description: sg with rule port 80 from all 
+    vpc_id: vpc-08b84725240922342
+    region: eu-west-1
+    rules:
+      - proto: tcp
+        ports:
+        - 3306
+        group_id: "{{ ec2_1.group_id }}"
+        rule_desc: allow from 1st Instance on port 3306
+      - proto: tcp
+        ports:
+        - 3306
+        group_id: "{{ ec2_2.group_id }}"
+        rule_desc: allow from 2nd Instance on port 3306
+    register: rds_sg
+
+
+# Create Security Group for ELB
+- name: elb security group
+  ec2_group:
+    name: "{{ name }}"
+    description: sg with rule port 80 from all 
+    vpc_id: vpc-08b84725240922342
+    region: eu-west-1
+    rules:
+      - proto: tcp
+        ports:
+        - 80
+        cidr_ip: 0.0.0.0/0
+        rule_desc: allow from all on port 80
+    register: elb_sg
+
+# Create Security Group for Instances
+- name: ec2 security group 1
+  ec2_group:
+    name: "{{ name }}"
+    description: sg with rule port 80 on instance 1
+    vpc_id: vpc-08b84725240922342
+    region: eu-west-1
+    rules:
+      - proto: tcp
+        ports:
+        - 80
+        group_id: "{{ elb_sg.group_id }}"
+        rule_desc: allow from ELB on port 80
+    register: ec2_1
+
+- name: ec2 security group 2
+  ec2_group:
+    name: "{{ name }}"
+    description: sg with rule port 80 on instance 2
+    vpc_id: vpc-08b84725240922342
+    region: eu-west-1
+    rules:
+      - proto: tcp
+        ports:
+        - 80
+        group_id: "{{ elb_sg.group_id }}"
+        rule_desc: allow from ELB on port 80
+    register: ec2_2
+
+# start an instance
+- ec2_instance:
+    name: "instance01"
+    key_name: "ansible_tower"
+    vpc_subnet_id: subnet-015b66088ddadb019
+    instance_type: t2.micro
+    security_group: "{{ ec2_1.group_id }}"
+    image_id: ami-0cc4c981c1f9d5c83
+    tags:
+      Name: "Testing Creating EC2 with Ansible Tower #1"
+      Environment Type: "POC"
+      Cost Centre: "WHG356"
+      Technical Service: "Ansible Tower"
+      Software Product: "SHARED"
+    register: instance01
+	
+# start a 2nd instance
+- ec2_instance:
+    name: "instance02"
+    key_name: "ansible_tower"
+    vpc_subnet_id: subnet-0f34ccdc972367bef
+    instance_type: t2.micro
+    security_group: "{{ ec2_2.group_id }}"
+    image_id: ami-0cc4c981c1f9d5c83
+    tags:
+      Name: "Testing Creating EC2 with Ansible Tower #2"
+      Environment Type: "POC"
+      Cost Centre: "WHG356"
+      Technical Service: "Ansible Tower"
+      Software Product: "SHARED"
+    register: instance02
+	
+# Create an ELB, Listeners, Health Check and add tags
+- local_action:
+    module: ec2_elb_lb
+    name: "Testing Creating ELB with Ansible Tower"
+    state: present
+    security_group_ids:
+      - "{{ elb_sg.group_id }}"
+    subnets: 
+      - subnet-077f187433ccfa2db
+      - subnet-009f2ddc9a2513afe
+    cross_az_load_balancing: yes
+    connection_draining_timeout: 300
+    instance_ids: 
+      - instance01.instance_id
+      - instance02.instance_id
+    region: eu-west-1
+    zones:
+      - eu-west-1a
+      - eu-west-1b
+    listeners:
+      - protocol: http
+        load_balancer_port: 80
+        instance_port: 80
+    tags:
+      Name: "ELB_Created_Using_Ansible"
+      Cost Centre: "WHG356"
+      Software Product: "SHARED"
+      Technical Service: "Ansible Tower"
+      Environment Type: "POC"
+    health_check:
+      ping_protocol: http # options are http, https, ssl, tcp
+      ping_port: 80
+      ping_path: "/index.html" # not required for tcp or ssl
+      response_timeout: 5 # seconds
+      interval: 30 # seconds
+      unhealthy_threshold: 2
+      healthy_threshold: 10
+
+#Create a subnet group for RDS instance 
+- rds_subnet_group:
+    state: present
+    name: RDS Subnet Group
+    description: Testing the Creation of a Subnet Group for RDS Instance
+    subnets:
+      - subnet-0d4a62e9f365f18e2
+      - subnet-02de914ce9a45339e
+    register: rds_sub
+    
+#Create RDS SQL Server 
+- name: "Testing the Creation of a SQL Server RDS instance using Ansible"
+  rds_instance:
+    state: present
+    engine: mysql
+    multi_az: no 
+    db_instance_class: db.t2.small
+    master_username: "vitalityadmin"
+    master_user_password: "password"
+    allocated_storage: 20
+    availability_zone: eu-west-1a
+    db_subnet_group: "{{ rds_sub.subnet_group.name }}"
+    vpc_security_group_ids: 
+      - "{{ rds_sg.group_id }}"    
